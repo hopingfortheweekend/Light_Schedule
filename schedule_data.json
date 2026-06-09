@@ -13,6 +13,10 @@
     "2026-06-09": [
       {
         "task": "写 README 文档",
+        "done": true
+      },
+      {
+        "task": "需求文档",
         "done": false
       }
     ],
@@ -67,7 +71,7 @@
         },
         {
           "step": "投递 5 家公司",
-          "done": false,
+          "done": true,
           "deadline": "2026-06-14"
         }
       ]

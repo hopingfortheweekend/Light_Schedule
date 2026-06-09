@@ -26,14 +26,17 @@ class ScheduleApp:
         self.task_label = ttk.Label(self.task_frame, text=f"日期: {self.task_date}")
         self.task_label.pack()
 
-        self.task_listbox = tk.Listbox(self.task_frame, height=10)
+        self.task_listbox = tk.Listbox(self.task_frame, height=10, cursor="hand2")
         self.task_listbox.pack(fill="both", expand=True)
+        self.task_listbox.bind("<Button-1>", self.on_task_click)
+        self.task_listbox.bind("<Double-Button-1>", self.edit_task)
 
-        self.add_task_button = ttk.Button(self.task_frame, text="添加任务", command=self.add_task)
-        self.add_task_button.pack(pady=5)
-
-        self.mark_done_button = ttk.Button(self.task_frame, text="标记完成", command=self.mark_task_done)
-        self.mark_done_button.pack(pady=5)
+        btn_frame = ttk.Frame(self.task_frame)
+        btn_frame.pack(pady=5)
+        self.add_task_button = ttk.Button(btn_frame, text="添加任务", command=self.add_task)
+        self.add_task_button.pack(side=tk.LEFT, padx=2)
+        self.mark_done_button = ttk.Button(btn_frame, text="切换完成状态", command=self.toggle_task_done)
+        self.mark_done_button.pack(side=tk.LEFT, padx=2)
 
         self.load_tasks()
 
@@ -104,17 +107,50 @@ class ScheduleApp:
             self.load_tasks()
             self.refresh_calendar_events()
 
-    def mark_task_done(self):
-        selection = self.task_listbox.curselection()
-        if not selection:
-            messagebox.showwarning("提示", "请选择一个任务")
+    def on_task_click(self, event):
+        """点击任务列表：若点在状态标记区域则切换完成状态，否则选中"""
+        index = self.task_listbox.nearest(event.y)
+        if index < 0:
             return
-        index = selection[0]
+        if event.x < 35:  # 状态标记 [✓]/[✗] 区域
+            self._toggle_task(index)
+        else:
+            self.task_listbox.selection_clear(0, tk.END)
+            self.task_listbox.selection_set(index)
+
+    def _toggle_task(self, index):
+        """切换指定任务的完成状态"""
         date_str = str(self.task_date)
-        self.data["tasks"][date_str][index]["done"] = True
+        if date_str not in self.data["tasks"] or index >= len(self.data["tasks"][date_str]):
+            return
+        current = self.data["tasks"][date_str][index]["done"]
+        self.data["tasks"][date_str][index]["done"] = not current
         self.save_data()
         self.load_tasks()
         self.refresh_calendar_events()
+
+    def toggle_task_done(self):
+        """按钮：切换选中任务的完成状态"""
+        selection = self.task_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("提示", "请先点击选中一个任务")
+            return
+        self._toggle_task(selection[0])
+
+    def edit_task(self, event=None):
+        """双击编辑任务内容"""
+        index = self.task_listbox.nearest(event.y) if event else None
+        if index is None or index < 0:
+            return
+        date_str = str(self.task_date)
+        if date_str not in self.data["tasks"] or index >= len(self.data["tasks"][date_str]):
+            return
+        task = self.data["tasks"][date_str][index]
+        new_text = simpledialog.askstring("编辑任务", "修改任务内容:", initialvalue=task["task"])
+        if new_text and new_text != task["task"]:
+            task["task"] = new_text
+            self.save_data()
+            self.load_tasks()
 
     def load_tasks(self):
         self.task_listbox.delete(0, tk.END)
@@ -252,14 +288,17 @@ class ProjectWindow:
         self.refresh_callback = refresh_callback
         self.cal_refresh_callback = cal_refresh_callback
 
-        self.step_listbox = tk.Listbox(self.top, height=10)
+        self.step_listbox = tk.Listbox(self.top, height=10, cursor="hand2")
         self.step_listbox.pack(fill="both", expand=True)
+        self.step_listbox.bind("<Button-1>", self.on_step_click)
+        self.step_listbox.bind("<Double-Button-1>", self.edit_step)
 
-        self.add_step_button = ttk.Button(self.top, text="添加步骤", command=self.add_step)
-        self.add_step_button.pack(pady=5)
-
-        self.mark_step_done_button = ttk.Button(self.top, text="标记完成", command=self.mark_step_done)
-        self.mark_step_done_button.pack(pady=5)
+        btn_frame = ttk.Frame(self.top)
+        btn_frame.pack(pady=5)
+        self.add_step_button = ttk.Button(btn_frame, text="添加步骤", command=self.add_step)
+        self.add_step_button.pack(side=tk.LEFT, padx=2)
+        self.mark_step_done_button = ttk.Button(btn_frame, text="切换完成状态", command=self.toggle_step_done)
+        self.mark_step_done_button.pack(side=tk.LEFT, padx=2)
 
         self.load_steps()
 
@@ -273,16 +312,52 @@ class ProjectWindow:
             self.refresh_callback()
             self.cal_refresh_callback()
 
-    def mark_step_done(self):
-        selection = self.step_listbox.curselection()
-        if not selection:
-            messagebox.showwarning("提示", "请选择一个步骤")
+    def on_step_click(self, event):
+        """点击步骤列表：若点在状态标记区域则切换完成状态，否则选中"""
+        index = self.step_listbox.nearest(event.y)
+        if index < 0:
             return
-        index = selection[0]
-        self.project_data["steps"][index]["done"] = True
+        if event.x < 35:  # 状态标记 [✓]/[✗] 区域
+            self._toggle_step(index)
+        else:
+            self.step_listbox.selection_clear(0, tk.END)
+            self.step_listbox.selection_set(index)
+
+    def _toggle_step(self, index):
+        """切换指定步骤的完成状态"""
+        if index >= len(self.project_data["steps"]):
+            return
+        current = self.project_data["steps"][index]["done"]
+        self.project_data["steps"][index]["done"] = not current
         self.save_callback()
         self.load_steps()
         self.cal_refresh_callback()
+
+    def toggle_step_done(self):
+        """按钮：切换选中步骤的完成状态"""
+        selection = self.step_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("提示", "请先点击选中一个步骤")
+            return
+        self._toggle_step(selection[0])
+
+    def edit_step(self, event=None):
+        """双击编辑步骤内容和截止日期"""
+        index = self.step_listbox.nearest(event.y) if event else None
+        if index is None or index < 0 or index >= len(self.project_data["steps"]):
+            return
+        step = self.project_data["steps"][index]
+        new_text = simpledialog.askstring("编辑步骤", "修改步骤内容:", initialvalue=step["step"])
+        if new_text is not None and new_text != step["step"]:
+            step["step"] = new_text
+        new_deadline = simpledialog.askstring("编辑截止时间", "修改截止日期 (YYYY-MM-DD)，可留空:", initialvalue=step.get("deadline", ""))
+        if new_deadline is not None and new_deadline != step.get("deadline", ""):
+            step["deadline"] = new_deadline
+        if new_text is not None or new_deadline is not None:
+            self.save_callback()
+            self.load_steps()
+            self.cal_refresh_callback()
+            self.refresh_callback()
 
     def load_steps(self):
         self.step_listbox.delete(0, tk.END)
