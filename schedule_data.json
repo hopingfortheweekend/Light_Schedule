@@ -1,131 +1,130 @@
 {
   "tasks": {
-    "2026-06-08": [
+    "2026-06-11": [
       {
-        "task": "优化日历视图代码",
+        "task": "完成本周工作总结",
         "done": true
       },
       {
-        "task": "完成 Git 初始化",
+        "task": "回复客户邮件",
+        "done": false
+      },
+      {
+        "task": "整理会议纪要",
         "done": false
       }
     ],
-    "2026-06-09": [
+    "2026-06-12": [
       {
-        "task": "写 README 文档",
-        "done": true
+        "task": "准备项目汇报 PPT",
+        "done": false
       },
       {
-        "task": "需求文档",
+        "task": "复习考试章节 3-5",
         "done": false
       }
     ],
     "2026-06-10": [
       {
-        "task": "学习 pytest 基础",
+        "task": "跑步 30 分钟",
+        "done": true
+      },
+      {
+        "task": "阅读技术博客 2 篇",
         "done": false
       }
     ],
-    "2026-06-11": [
+    "2026-06-09": [
       {
-        "task": "完成课程研讨",
+        "task": "给朋友准备生日礼物",
+        "done": true
+      },
+      {
+        "task": "缴纳本月房租",
         "done": true
       }
     ]
   },
   "projects": {
-    "日程管理工具优化": {
+    "学期论文写作": {
       "steps": [
         {
-          "step": "工程基建（Git + README + requirements）",
+          "step": "确定论文选题",
           "done": true,
-          "deadline": "2026-06-08"
+          "deadline": "2026-06-05"
         },
         {
-          "step": "日历可视化功能实现",
+          "step": "收集参考文献（至少 10 篇）",
           "done": true,
-          "deadline": "2026-06-08"
+          "deadline": "2026-06-10"
         },
         {
-          "step": "代码架构重构（模块化拆分）",
-          "done": true,
-          "deadline": "2026-06-12"
-        },
-        {
-          "step": "添加任务优先级功能",
-          "done": true,
+          "step": "完成文献综述部分",
+          "done": false,
           "deadline": "2026-06-15"
         },
         {
-          "step": "数据统计看板",
+          "step": "完成数据分析与图表",
           "done": false,
           "deadline": "2026-06-20"
         },
         {
-          "step": "项目/任务状态更改和内容自定义修改",
-          "done": true,
-          "deadline": "2026-06-09"
-        },
-        {
-          "step": "UI优化",
+          "step": "初稿修改与校对",
           "done": false,
-          "deadline": "2026-06-11"
+          "deadline": "2026-06-25"
         }
       ],
       "done": false
     },
-    "找实习": {
+    "健身计划": {
       "steps": [
         {
-          "step": "修改打招呼语",
+          "step": "制定每周训练计划",
           "done": true,
-          "deadline": "2026-06-07"
+          "deadline": "2026-06-06"
         },
         {
-          "step": "修改简历",
+          "step": "购买运动装备",
+          "done": true,
+          "deadline": "2026-06-11"
+        },
+        {
+          "step": "坚持打卡第一周（至少 4 次）",
           "done": false,
-          "deadline": "2026-06-10"
+          "deadline": "2026-06-18"
         },
         {
-          "step": "投递 5 家公司",
+          "step": "月末体能自测",
+          "done": false,
+          "deadline": "2026-06-30"
+        }
+      ],
+      "done": false
+    },
+    "暑假旅行规划": {
+      "steps": [
+        {
+          "step": "确定旅行目的地和预算",
+          "done": true,
+          "deadline": "2026-06-08"
+        },
+        {
+          "step": "预订机票和高铁票",
           "done": true,
           "deadline": "2026-06-14"
         },
         {
-          "step": "完善后续要放在简历里的项目",
+          "step": "预订酒店和景点门票",
           "done": false,
-          "deadline": "2026-06-11"
-        }
-      ]
-    },
-    "周四课程研讨": {
-      "steps": [
-        {
-          "step": "阅读《马基雅维利时刻》7-9章",
-          "done": true,
-          "deadline": ""
+          "deadline": "2026-06-20"
         },
         {
-          "step": "完成读书笔记",
-          "done": true,
-          "deadline": ""
-        },
-        {
-          "step": "汇总两周内的阅读问题",
-          "done": true,
-          "deadline": ""
-        },
-        {
-          "step": "研讨中发言至少两次",
-          "done": true,
-          "deadline": ""
+          "step": "整理行李清单",
+          "done": false,
+          "deadline": "2026-06-25"
         }
       ],
       "done": true
-    },
-    "实习": {
-      "steps": [],
-      "done": false
     }
   }
 }
