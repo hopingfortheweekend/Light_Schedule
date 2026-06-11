@@ -4,13 +4,24 @@ UI 层不需要知道数据怎么存的，只管调用这里的方法。
 """
 import json
 import os
+import sys
 import datetime
 
 from utils.logger import logger
 
 
+def _get_data_dir():
+    """返回数据文件应存放的目录（exe 同目录或当前工作目录）"""
+    if getattr(sys, "frozen", False):
+        # PyInstaller 打包后，数据放在 exe 同目录
+        return os.path.dirname(sys.executable)
+    return os.getcwd()
+
+
 class DataStore:
-    def __init__(self, filepath="schedule_data.json"):
+    def __init__(self, filepath=None):
+        if filepath is None:
+            filepath = os.path.join(_get_data_dir(), "schedule_data.json")
         self.filepath = filepath
         self.data = {"tasks": {}, "projects": {}}
         self.load()
@@ -26,6 +37,27 @@ class DataStore:
             except (json.JSONDecodeError, IOError) as e:
                 logger.error("数据文件损坏或无法读取: %s", e)
                 self.data = {"tasks": {}, "projects": {}}
+        else:
+            # 首次运行：尝试从打包的示例数据复制
+            bundled = self._get_bundled_data_path()
+            if bundled and os.path.exists(bundled):
+                try:
+                    import shutil
+                    shutil.copy(bundled, self.filepath)
+                    with open(self.filepath, "r", encoding="utf-8") as f:
+                        self.data = json.load(f)
+                    logger.info("已从示例数据初始化: %s", self.filepath)
+                    return
+                except (IOError, json.JSONDecodeError) as e:
+                    logger.warning("示例数据复制失败: %s", e)
+            self.data = {"tasks": {}, "projects": {}}
+
+    @staticmethod
+    def _get_bundled_data_path():
+        """返回 PyInstaller 打包内的 schedule_data.json 路径"""
+        if getattr(sys, "frozen", False):
+            return os.path.join(sys._MEIPASS, "schedule_data.json")
+        return None
 
     def save(self):
         try:
