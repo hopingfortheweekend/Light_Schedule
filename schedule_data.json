@@ -32,7 +32,7 @@
       "steps": [
         {
           "step": "工程基建（Git + README + requirements）",
-          "done": false,
+          "done": true,
           "deadline": "2026-06-08"
         },
         {
@@ -54,6 +54,11 @@
           "step": "数据统计看板",
           "done": false,
           "deadline": "2026-06-20"
+        },
+        {
+          "step": "项目/任务状态更改和内容自定义修改",
+          "done": false,
+          "deadline": "2026-06-09"
         }
       ]
     },
