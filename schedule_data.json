@@ -25,6 +25,12 @@
         "task": "学习 pytest 基础",
         "done": false
       }
+    ],
+    "2026-06-11": [
+      {
+        "task": "完成课程研讨",
+        "done": true
+      }
     ]
   },
   "projects": {
@@ -42,12 +48,12 @@
         },
         {
           "step": "代码架构重构（模块化拆分）",
-          "done": false,
+          "done": true,
           "deadline": "2026-06-12"
         },
         {
           "step": "添加任务优先级功能",
-          "done": false,
+          "done": true,
           "deadline": "2026-06-15"
         },
         {
@@ -57,10 +63,16 @@
         },
         {
           "step": "项目/任务状态更改和内容自定义修改",
-          "done": false,
+          "done": true,
           "deadline": "2026-06-09"
+        },
+        {
+          "step": "UI优化",
+          "done": false,
+          "deadline": "2026-06-11"
         }
-      ]
+      ],
+      "done": false
     },
     "找实习": {
       "steps": [
@@ -78,8 +90,42 @@
           "step": "投递 5 家公司",
           "done": true,
           "deadline": "2026-06-14"
+        },
+        {
+          "step": "完善后续要放在简历里的项目",
+          "done": false,
+          "deadline": "2026-06-11"
         }
       ]
+    },
+    "周四课程研讨": {
+      "steps": [
+        {
+          "step": "阅读《马基雅维利时刻》7-9章",
+          "done": true,
+          "deadline": ""
+        },
+        {
+          "step": "完成读书笔记",
+          "done": true,
+          "deadline": ""
+        },
+        {
+          "step": "汇总两周内的阅读问题",
+          "done": true,
+          "deadline": ""
+        },
+        {
+          "step": "研讨中发言至少两次",
+          "done": true,
+          "deadline": ""
+        }
+      ],
+      "done": true
+    },
+    "实习": {
+      "steps": [],
+      "done": false
     }
   }
 }

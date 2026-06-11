@@ -21,15 +21,16 @@ class App:
         # 数据层
         self.data_store = DataStore()
 
-        # 顶部栏（导出按钮）
-        top_bar = ttk.Frame(root)
-        top_bar.pack(fill="x", padx=5, pady=(5, 0))
-        ttk.Button(top_bar, text="📤 导出数据", command=lambda: export_csv(self.data_store, root)
-                   ).pack(side=tk.RIGHT)
+        # 标签页行（Notebook + 导出按钮并排）
+        tab_row = ttk.Frame(root)
+        tab_row.pack(fill="both", expand=True, padx=5, pady=(5, 0))
 
-        # 标签页容器
-        self.notebook = ttk.Notebook(root)
-        self.notebook.pack(fill="both", expand=True)
+        self.notebook = ttk.Notebook(tab_row)
+        self.notebook.pack(side=tk.LEFT, fill="both", expand=True)
+
+        ttk.Button(tab_row, text="📤 导出数据",
+                   command=lambda: export_csv(self.data_store, root)
+                   ).pack(side=tk.RIGHT, padx=(5, 0))
 
         # —— 四个页面 ——
         self.task_tab = TaskTab(self.notebook, self.data_store,

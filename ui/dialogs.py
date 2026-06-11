@@ -9,7 +9,7 @@ from tkinter import ttk, messagebox
 class EditDialog:
     """编辑弹窗：编辑文本 + 可选截止日期 + 删除按钮"""
 
-    def __init__(self, parent, title, text="", deadline="", has_deadline=False):
+    def __init__(self, parent, title, text="", deadline="", has_deadline=False, show_delete=True):
         self.result = None  # "save", "delete", None(取消)
         self.text = text
         self.deadline = deadline
@@ -40,7 +40,8 @@ class EditDialog:
                        pady=(10, 10), padx=10)
 
         ttk.Button(btn_frame, text="保存修改", command=self._save).pack(side=tk.LEFT, padx=3)
-        ttk.Button(btn_frame, text="删除", command=self._delete).pack(side=tk.LEFT, padx=3)
+        if show_delete:
+            ttk.Button(btn_frame, text="删除", command=self._delete).pack(side=tk.LEFT, padx=3)
         ttk.Button(btn_frame, text="取消", command=self._cancel).pack(side=tk.LEFT, padx=3)
 
         # 居中

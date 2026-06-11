@@ -125,6 +125,7 @@ class ProjectWindow:
 
         self.top = tk.Toplevel(parent)
         self.top.title(f"项目: {project_name}")
+        self.top.geometry("480x380")
 
         self.listbox = tk.Listbox(self.top, height=10, cursor="hand2")
         self.listbox.pack(fill="both", expand=True)
