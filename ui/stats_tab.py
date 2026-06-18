@@ -1,5 +1,6 @@
 """
 数据统计看板：折线图展示完成 vs 全部趋势，支持切换时间范围。
+统计数据涵盖：单次任务、项目步骤、固定任务。
 """
 import tkinter as tk
 from tkinter import ttk
@@ -10,12 +11,12 @@ import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 
-# 设置中文字体（Windows 用微软雅黑）
 plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
 plt.rcParams["axes.unicode_minus"] = False
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from utils.i18n import t
 
 
 class StatsTab(ttk.Frame):
@@ -28,10 +29,9 @@ class StatsTab(ttk.Frame):
     def __init__(self, parent, data_store):
         super().__init__(parent)
         self.data_store = data_store
-        self.current_mode = "week"   # week | month
+        self.current_mode = "week"
         self.current_num = 4
 
-        # 控制栏
         ctrl = ttk.Frame(self)
         ctrl.pack(fill="x", padx=10, pady=5)
         ttk.Label(ctrl, text="时间范围:").pack(side=tk.LEFT)
@@ -40,11 +40,9 @@ class StatsTab(ttk.Frame):
                        command=lambda m=mode, n=num: self._switch(m, n)
                        ).pack(side=tk.LEFT, padx=2)
 
-        # 完成率概览
         self.summary_label = ttk.Label(self, text="", font=("", 11))
         self.summary_label.pack(pady=(5, 0))
 
-        # matplotlib 图表
         self.fig = Figure(figsize=(6, 3.5), dpi=100)
         self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.fig, self)
@@ -60,16 +58,13 @@ class StatsTab(ttk.Frame):
         self.current_num = num
         self._draw()
 
-    # ── 数据聚合 ──────────────────────────────
-
     def _aggregate(self):
-        """根据当前时间范围聚合数据，返回 (labels, totals, dones)"""
+        """聚合数据：单次任务 + 项目步骤 + 固定任务执行次数"""
         today = datetime.date.today()
 
         if self.current_mode == "week":
             delta = datetime.timedelta(weeks=self.current_num)
             start = today - delta
-            # 按周分桶
             buckets = []
             for i in range(self.current_num):
                 week_end = start + datetime.timedelta(weeks=i + 1)
@@ -77,12 +72,10 @@ class StatsTab(ttk.Frame):
                 buckets.append((week_start, week_end))
             label_fmt = lambda s, e: f"{s.month}/{s.day}-{e.month}/{e.day}"
         else:
-            # month
             delta = datetime.timedelta(days=self.current_num * 31)
             start = today - delta
             buckets = []
             for i in range(self.current_num):
-                # 每月近似
                 bs = start + datetime.timedelta(days=i * 31)
                 be = start + datetime.timedelta(days=(i + 1) * 31)
                 buckets.append((bs, be))
@@ -93,10 +86,13 @@ class StatsTab(ttk.Frame):
         dones = []
 
         tasks = self.data_store.data.get("tasks", {})
+
         for bs, be in buckets:
             labels.append(label_fmt(bs, be))
             t_total = 0
             t_done = 0
+
+            # 单次任务
             for date_str, t_list in tasks.items():
                 try:
                     d = datetime.date.fromisoformat(date_str)
@@ -105,12 +101,36 @@ class StatsTab(ttk.Frame):
                 if bs <= d < be:
                     t_total += len(t_list)
                     t_done += sum(1 for t in t_list if t.get("done"))
+
+            # 项目步骤（按截止日期落在区间内统计）
+            for proj_data in self.data_store.data.get("projects", {}).values():
+                for step in proj_data.get("steps", []):
+                    dl = step.get("deadline", "")
+                    if not dl:
+                        continue
+                    try:
+                        d = datetime.date.fromisoformat(dl)
+                    except ValueError:
+                        continue
+                    if bs <= d < be:
+                        t_total += 1
+                        if step.get("done"):
+                            t_done += 1
+
+            # 固定任务执行次数（规则在区间内匹配的天数）
+            for r in self.data_store.data.get("routines", []):
+                routine_start = max(bs, datetime.date.fromisoformat(r.get("created_at", "2000-01-01")))
+                routine_end = min(be - datetime.timedelta(days=1), today)
+                if routine_start <= routine_end:
+                    dates = self.data_store.get_routine_dates(r["id"], routine_start, routine_end)
+                    t_total += len(dates)
+                    # 固定任务视为"完成"（它是提醒性质的）→ 算在执行量中
+                    t_done += len(dates)
+
             totals.append(t_total)
             dones.append(t_done)
 
         return labels, totals, dones
-
-    # ── 绘图 ──────────────────────────────────
 
     def _draw(self):
         labels, totals, dones = self._aggregate()
@@ -123,7 +143,6 @@ class StatsTab(ttk.Frame):
         self.ax.plot(x, dones, "o-", color="#6BCB77", linewidth=2,
                      markersize=6, label="已完成")
 
-        # 数值标注
         for i in x:
             self.ax.annotate(str(totals[i]), (i, totals[i]),
                              textcoords="offset points", xytext=(0, 10),
@@ -143,7 +162,6 @@ class StatsTab(ttk.Frame):
         self.fig.tight_layout()
         self.canvas.draw()
 
-        # 汇总
         grand_total = sum(totals)
         grand_done = sum(dones)
         rate = f"{grand_done / grand_total * 100:.0f}%" if grand_total > 0 else "暂无数据"

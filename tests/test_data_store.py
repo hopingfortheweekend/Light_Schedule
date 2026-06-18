@@ -176,6 +176,176 @@ class TestCalendarQueries:
         assert due[0][1]["step"] == "赶上这天"
 
 
+class TestTaskDeadline:
+    """任务截止日期相关测试"""
+
+    def test_add_task_with_deadline(self, store):
+        store.add_task("2026-07-01", "有截止日期的任务", "2026-07-10")
+        tasks = store.get_tasks("2026-07-01")
+        assert tasks[0]["deadline"] == "2026-07-10"
+
+    def test_add_task_without_deadline(self, store):
+        store.add_task("2026-07-01", "无截止日期")
+        tasks = store.get_tasks("2026-07-01")
+        assert "deadline" not in tasks[0]
+
+    def test_update_task_set_deadline(self, store):
+        store.add_task("2026-07-01", "原任务")
+        store.update_task("2026-07-01", 0, "新任务", "2026-07-15")
+        assert store.get_tasks("2026-07-01")[0]["deadline"] == "2026-07-15"
+
+    def test_update_task_remove_deadline(self, store):
+        store.add_task("2026-07-01", "任务", "2026-07-10")
+        store.update_task("2026-07-01", 0, "任务", "")
+        assert "deadline" not in store.get_tasks("2026-07-01")[0]
+
+
+class TestProjectDates:
+    """项目起止日期相关测试"""
+
+    def test_add_project_with_dates(self, store):
+        store.add_project("毕设", "2026-03-01", "2026-06-30")
+        assert store.get_project_start_date("毕设") == "2026-03-01"
+        assert store.get_project_end_date("毕设") == "2026-06-30"
+
+    def test_add_project_without_dates(self, store):
+        store.add_project("无日期项目")
+        assert store.get_project_start_date("无日期项目") == ""
+        assert store.get_project_end_date("无日期项目") == ""
+
+    def test_update_project_dates(self, store):
+        store.add_project("测试项目")
+        store.update_project_dates("测试项目", "2026-06-01", "2026-12-31")
+        assert store.get_project_start_date("测试项目") == "2026-06-01"
+        assert store.get_project_end_date("测试项目") == "2026-12-31"
+        # 清空日期
+        store.update_project_dates("测试项目", "", "")
+        assert store.get_project_start_date("测试项目") == ""
+        assert store.get_project_end_date("测试项目") == ""
+
+    def test_only_start_date(self, store):
+        store.add_project("P", "2026-01-01")
+        assert store.get_project_start_date("P") == "2026-01-01"
+        assert store.get_project_end_date("P") == ""
+
+
+class TestRoutineOperations:
+    """固定任务相关测试"""
+
+    def test_add_and_list(self, store):
+        rule = {"type": "weekly", "days": [0, 2, 4]}
+        r = store.add_routine("晨读", rule)
+        routines = store.get_routines()
+        assert len(routines) == 1
+        assert routines[0]["name"] == "晨读"
+        assert routines[0]["rule"] == rule
+
+    def test_update_routine(self, store):
+        rule = {"type": "weekly", "days": [0]}
+        r = store.add_routine("test", rule)
+        store.update_routine(r["id"], name="改名")
+        assert store.get_routines()[0]["name"] == "改名"
+
+    def test_delete_routine(self, store):
+        r = store.add_routine("test", {"type": "weekly", "days": [0]})
+        assert store.delete_routine(r["id"]) is True
+        assert len(store.get_routines()) == 0
+        assert store.delete_routine("nonexistent") is False
+
+    def test_routine_dates_weekly(self, store):
+        """每周一三五 → 在范围内生成正确日期"""
+        rule = {"type": "weekly", "days": [0, 2, 4]}  # Mon, Wed, Fri
+        r = store.add_routine("隔天任务", rule)
+        # 2026-06-15 (Mon) ~ 2026-06-21 (Sun) 应有 Mon(15), Wed(17), Fri(19)
+        import datetime
+        dates = store.get_routine_dates(r["id"],
+                                        datetime.date(2026, 6, 15),
+                                        datetime.date(2026, 6, 21))
+        assert "2026-06-15" in dates  # Monday
+        assert "2026-06-17" in dates  # Wednesday
+        assert "2026-06-19" in dates  # Friday
+        assert "2026-06-16" not in dates  # Tuesday
+
+    def test_routine_dates_monthly(self, store):
+        """每月 15 号 → 匹配正确"""
+        rule = {"type": "monthly", "days": [15]}
+        r = store.add_routine("月度复盘", rule)
+        import datetime
+        dates = store.get_routine_dates(r["id"],
+                                        datetime.date(2026, 6, 1),
+                                        datetime.date(2026, 7, 31))
+        assert "2026-06-15" in dates
+        assert "2026-07-15" in dates
+
+    def test_routine_dates_with_custom(self, store):
+        """custom_add 和 custom_remove 生效"""
+        rule = {"type": "weekly", "days": [0]}  # 每周一
+        r = store.add_routine("周一任务", rule,
+                              custom_add=["2026-06-17"],    # 加个周三
+                              custom_remove=["2026-06-22"])  # 去掉某个周一
+        import datetime
+        dates = store.get_routine_dates(r["id"],
+                                        datetime.date(2026, 6, 15),
+                                        datetime.date(2026, 6, 28))
+        assert "2026-06-15" in dates   # Monday (rule)
+        assert "2026-06-17" in dates   # added
+        assert "2026-06-22" not in dates  # removed Monday
+        assert "2026-06-16" not in dates  # Tuesday, no rule
+
+    def test_routine_dates_all(self, store):
+        """get_routine_dates_all 汇总所有固定任务"""
+        store.add_routine("R1", {"type": "weekly", "days": [0]})
+        store.add_routine("R2", {"type": "weekly", "days": [0]})
+        import datetime
+        all_dates = store.get_routine_dates_all(
+            datetime.date(2026, 6, 15), datetime.date(2026, 6, 21))
+        # 6/15 is Monday, both routines should match
+        assert "2026-06-15" in all_dates
+        assert len(all_dates["2026-06-15"]) == 2
+
+
+class TestUpcomingQueries:
+    """单次任务页"之后的任务"查询测试"""
+
+    def test_upcoming_tasks(self, store):
+        store.add_task("2026-06-20", "未来任务")
+        store.add_task("2026-06-10", "过去任务")
+        store.add_task("2026-06-15", "今天任务")
+        upcoming = store.get_upcoming_tasks("2026-06-15")
+        dates = [u[0] for u in upcoming]
+        assert "2026-06-20" in dates
+        assert "2026-06-10" not in dates
+        assert "2026-06-15" not in dates  # 不含今天
+
+    def test_upcoming_steps(self, store):
+        store.add_project("P1")
+        store.add_step("P1", "未来步骤", "2026-07-01")
+        store.add_step("P1", "过去步骤", "2026-01-01")
+        upcoming = store.get_upcoming_steps("2026-06-15")
+        assert len(upcoming) == 1
+        assert upcoming[0][1]["step"] == "未来步骤"
+
+
+class TestHolidayUtils:
+    """节假日工具测试"""
+
+    def test_is_holiday(self, store):
+        from utils.holidays import is_holiday, is_workday
+        import datetime
+        assert is_holiday(datetime.date(2026, 1, 1)) is True
+        assert is_holiday(datetime.date(2026, 6, 15)) is False
+
+    def test_is_workday(self, store):
+        from utils.holidays import is_workday
+        import datetime
+        # 2026-06-15 is Monday, not a holiday
+        assert is_workday(datetime.date(2026, 6, 15)) is True
+        # 2026-06-20 is Saturday
+        assert is_workday(datetime.date(2026, 6, 20)) is False
+        # 2026-01-01 is a holiday (Thursday)
+        assert is_workday(datetime.date(2026, 1, 1)) is False
+
+
 class TestPersistence:
     """数据持久化测试"""
 
@@ -184,7 +354,19 @@ class TestPersistence:
         store.add_project("重启项目")
         store.add_step("重启项目", "重启后还在", "2026-09-01")
 
-        # 模拟重启：新建一个 DataStore 指向同一个文件
         store2 = DataStore(store.filepath)
         assert store2.get_tasks("2026-08-01")[0]["task"] == "持久化测试"
         assert "重启项目" in store2.get_projects()
+
+    def test_v03_data_migration(self, store):
+        """旧数据（无 routines 键）加载时不崩溃，自动补齐"""
+        import json
+        # 写旧格式数据
+        old_data = {"tasks": {"2026-06-15": [{"task": "旧任务", "done": False}]},
+                     "projects": {}}
+        with open(store.filepath, "w", encoding="utf-8") as f:
+            json.dump(old_data, f)
+        store2 = DataStore(store.filepath)
+        assert "routines" in store2.data
+        assert store2.data["routines"] == []
+        assert store2.get_tasks("2026-06-15")[0]["task"] == "旧任务"

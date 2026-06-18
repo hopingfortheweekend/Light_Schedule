@@ -43,6 +43,38 @@
         "task": "缴纳本月房租",
         "done": true
       }
+    ],
+    "2026-06-20": [
+      {
+        "task": "带截止日期的任务",
+        "done": false,
+        "deadline": "2026-06-25"
+      }
+    ],
+    "2026-07-01": [
+      {
+        "task": "未来任务",
+        "done": false
+      }
+    ],
+    "2026-06-17": [
+      {
+        "task": "上半身无氧（550ml）",
+        "done": false,
+        "deadline": "2026-06-17"
+      }
+    ],
+    "2026-06-24": [
+      {
+        "task": "租房子",
+        "done": false
+      }
+    ],
+    "2026-06-18": [
+      {
+        "task": "继续投简历",
+        "done": false
+      }
     ]
   },
   "projects": {
@@ -74,7 +106,9 @@
           "deadline": "2026-06-25"
         }
       ],
-      "done": false
+      "done": false,
+      "start_date": "2026-6-1",
+      "end_date": "2026-7-1"
     },
     "健身计划": {
       "steps": [
@@ -126,5 +160,21 @@
       ],
       "done": true
     }
-  }
+  },
+  "routines": [
+    {
+      "id": "d853e2b0",
+      "name": "投简历",
+      "rule": {
+        "type": "weekly",
+        "days": [
+          0,
+          1
+        ]
+      },
+      "custom_add": [],
+      "custom_remove": [],
+      "created_at": "2026-06-17"
+    }
+  ]
 }
