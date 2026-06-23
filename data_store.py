@@ -42,6 +42,21 @@ class DataStore:
                 logger.error("数据文件损坏或无法读取: %s", e)
                 self.data = {"tasks": {}, "projects": {}, "routines": []}
         else:
+            # 首次运行：尝试从示例数据复制
+            sample = os.path.join(os.path.dirname(self.filepath), "schedule_data.sample.json")
+            if os.path.exists(sample):
+                try:
+                    import shutil
+                    shutil.copy(sample, self.filepath)
+                    with open(self.filepath, "r", encoding="utf-8") as f:
+                        self.data = json.load(f)
+                    if "routines" not in self.data:
+                        self.data["routines"] = []
+                    logger.info("已从示例数据初始化: %s", self.filepath)
+                    return
+                except (IOError, json.JSONDecodeError) as e:
+                    logger.warning("示例数据复制失败: %s", e)
+            # fallback: 尝试 PyInstaller 打包内的数据
             bundled = self._get_bundled_data_path()
             if bundled and os.path.exists(bundled):
                 try:
@@ -51,10 +66,10 @@ class DataStore:
                         self.data = json.load(f)
                     if "routines" not in self.data:
                         self.data["routines"] = []
-                    logger.info("已从示例数据初始化: %s", self.filepath)
+                    logger.info("已从捆绑数据初始化: %s", self.filepath)
                     return
                 except (IOError, json.JSONDecodeError) as e:
-                    logger.warning("示例数据复制失败: %s", e)
+                    logger.warning("捆绑数据复制失败: %s", e)
             self.data = {"tasks": {}, "projects": {}, "routines": []}
 
     @staticmethod

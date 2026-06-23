@@ -28,6 +28,7 @@ Thumbs.db
 # 数据备份
 *.bak
 schedule_data_backup.json
+schedule_data.json
 
 # 日志
 *.log
