@@ -13,16 +13,32 @@ from utils.holidays import is_workday
 
 
 def _get_data_dir():
-    """返回数据文件应存放的目录（exe 同目录或当前工作目录）"""
+    """返回用户数据目录（Windows: %APPDATA%\\LightSchedule）。
+    开发模式 (python main.py) 和 exe 模式共用同一份数据，不受代码位置影响。
+    """
+    appdata = os.environ.get("APPDATA", os.path.expanduser("~"))
+    return os.path.join(appdata, "LightSchedule")
+
+
+def _get_legacy_data_paths():
+    """返回旧版可能存放数据的位置（用于迁移）"""
+    paths = []
+    # exe 同目录（旧版 frozen 模式）
     if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
-    return os.getcwd()
+        paths.append(os.path.join(os.path.dirname(sys.executable), "schedule_data.json"))
+    # 当前工作目录（旧版开发模式）
+    paths.append(os.path.join(os.getcwd(), "schedule_data.json"))
+    return paths
 
 
 class DataStore:
     def __init__(self, filepath=None):
+        # 确保数据目录存在
+        data_dir = _get_data_dir()
+        os.makedirs(data_dir, exist_ok=True)
+
         if filepath is None:
-            filepath = os.path.join(_get_data_dir(), "schedule_data.json")
+            filepath = os.path.join(data_dir, "schedule_data.json")
         self.filepath = filepath
         self.data = {"tasks": {}, "projects": {}, "routines": []}
         self.load()
@@ -31,46 +47,61 @@ class DataStore:
 
     def load(self):
         if os.path.exists(self.filepath):
+            # 已有数据：直接加载
             try:
                 with open(self.filepath, "r", encoding="utf-8") as f:
                     self.data = json.load(f)
-                # 兼容旧数据（无 routines 键）
                 if "routines" not in self.data:
                     self.data["routines"] = []
                 logger.info("数据加载成功: %s", self.filepath)
+                return
             except (json.JSONDecodeError, IOError) as e:
                 logger.error("数据文件损坏或无法读取: %s", e)
                 self.data = {"tasks": {}, "projects": {}, "routines": []}
-        else:
-            # 首次运行：尝试从示例数据复制
-            sample = os.path.join(os.path.dirname(self.filepath), "schedule_data.sample.json")
-            if os.path.exists(sample):
+                return
+
+        # 没有数据文件：先尝试从旧位置迁移
+        for legacy_path in _get_legacy_data_paths():
+            if os.path.exists(legacy_path):
                 try:
                     import shutil
-                    shutil.copy(sample, self.filepath)
+                    shutil.copy(legacy_path, self.filepath)
                     with open(self.filepath, "r", encoding="utf-8") as f:
                         self.data = json.load(f)
                     if "routines" not in self.data:
                         self.data["routines"] = []
-                    logger.info("已从示例数据初始化: %s", self.filepath)
+                    logger.info("数据已从旧位置迁移: %s → %s", legacy_path, self.filepath)
                     return
                 except (IOError, json.JSONDecodeError) as e:
-                    logger.warning("示例数据复制失败: %s", e)
-            # fallback: 尝试 PyInstaller 打包内的数据
-            bundled = self._get_bundled_data_path()
-            if bundled and os.path.exists(bundled):
-                try:
-                    import shutil
-                    shutil.copy(bundled, self.filepath)
-                    with open(self.filepath, "r", encoding="utf-8") as f:
-                        self.data = json.load(f)
-                    if "routines" not in self.data:
-                        self.data["routines"] = []
-                    logger.info("已从捆绑数据初始化: %s", self.filepath)
-                    return
-                except (IOError, json.JSONDecodeError) as e:
-                    logger.warning("捆绑数据复制失败: %s", e)
-            self.data = {"tasks": {}, "projects": {}, "routines": []}
+                    logger.warning("旧数据迁移失败: %s", e)
+
+        # 仍然没有：从示例数据复制
+        sample_paths = []
+        # 打包内的 sample
+        bundled = self._get_bundled_data_path()
+        if bundled and os.path.exists(bundled):
+            sample_paths.append(bundled)
+        # 项目根目录的 .sample.json
+        if not getattr(sys, "frozen", False):
+            cwd_sample = os.path.join(os.getcwd(), "schedule_data.sample.json")
+            if os.path.exists(cwd_sample):
+                sample_paths.append(cwd_sample)
+
+        for sample_path in sample_paths:
+            try:
+                import shutil
+                shutil.copy(sample_path, self.filepath)
+                with open(self.filepath, "r", encoding="utf-8") as f:
+                    self.data = json.load(f)
+                if "routines" not in self.data:
+                    self.data["routines"] = []
+                logger.info("已从示例数据初始化: %s", self.filepath)
+                return
+            except (IOError, json.JSONDecodeError) as e:
+                logger.warning("示例数据复制失败: %s", e)
+
+        # 实在没有数据，从空开始
+        self.data = {"tasks": {}, "projects": {}, "routines": []}
 
     @staticmethod
     def _get_bundled_data_path():
