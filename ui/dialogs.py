@@ -29,12 +29,15 @@ class EditDialog:
         self.text_entry.grid(row=1, column=0, columnspan=2, padx=10, pady=(2, 5))
         self.text_entry.focus_set()
 
-        # 截止日期
+        # 任务/截止日期（合二为一，日历选择）
         if has_deadline:
-            ttk.Label(self.top, text="截止日期 (YYYY-MM-DD):").grid(row=2, column=0, sticky="w", padx=10)
+            ttk.Label(self.top, text="任务/截止日期:").grid(row=2, column=0, sticky="w", padx=10)
+            date_frame = ttk.Frame(self.top)
+            date_frame.grid(row=3, column=0, columnspan=2, padx=10, pady=(2, 5), sticky="w")
             self.dl_var = tk.StringVar(value=deadline)
-            self.dl_entry = ttk.Entry(self.top, textvariable=self.dl_var, width=20)
-            self.dl_entry.grid(row=3, column=0, columnspan=2, padx=10, pady=(2, 5))
+            ttk.Entry(date_frame, textvariable=self.dl_var, width=15).pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Button(date_frame, text="📅", width=3,
+                       command=self._pick_date).pack(side=tk.LEFT)
 
         # 按钮行
         btn_row = 4 if has_deadline else 2
@@ -73,9 +76,36 @@ class EditDialog:
     def _cancel(self):
         self.top.destroy()
 
+    def _pick_date(self):
+        """弹出日历日期选择器"""
+        try:
+            from tkcalendar import Calendar
+
+            cal_win = tk.Toplevel(self.top)
+            cal_win.title("选择日期")
+            cal_win.resizable(False, False)
+            cal_win.transient(self.top)
+            cal_win.grab_set()
+
+            cal = Calendar(cal_win, selectmode="day", date_pattern="yyyy-mm-dd")
+            cal.pack(padx=10, pady=10)
+
+            def set_date():
+                self.dl_var.set(str(cal.selection_get()))
+                cal_win.destroy()
+
+            ttk.Button(cal_win, text="确定", command=set_date).pack(pady=(0, 10))
+
+            cal_win.update_idletasks()
+            x = self.top.winfo_rootx() + (self.top.winfo_width() - cal_win.winfo_width()) // 2
+            y = self.top.winfo_rooty() + (self.top.winfo_height() - cal_win.winfo_height()) // 2
+            cal_win.geometry(f"+{x}+{y}")
+        except ImportError:
+            messagebox.showinfo("提示", "请输入日期 YYYY-MM-DD 格式", parent=self.top)
+
 
 class TaskDialog:
-    """添加单次任务弹窗：任务内容 + 可选截止日期 + 可选日期选择器"""
+    """添加单次任务弹窗：任务内容 + 可选日期选择器（任务/截止日期合一）"""
 
     def __init__(self, parent, title, default_date="", show_date_picker=False,
                  show_deadline=True):
@@ -101,18 +131,9 @@ class TaskDialog:
         self.text_entry.focus_set()
         row += 1
 
-        # 截止日期（仅"之后的任务"需要）
-        if show_deadline:
-            ttk.Label(self.top, text="截止日期 (YYYY-MM-DD，可留空):").grid(row=row, column=0, sticky="w", padx=10)
-            row += 1
-            self.dl_var = tk.StringVar()
-            self.dl_entry = ttk.Entry(self.top, textvariable=self.dl_var, width=20)
-            self.dl_entry.grid(row=row, column=0, columnspan=2, padx=10, pady=(2, 5))
-            row += 1
-
-        # 日期选择器（给"之后的任务"用）
+        # 日期选择器（给"之后的任务"用）：任务日期即截止日期，合二为一
         if show_date_picker:
-            ttk.Label(self.top, text="任务日期:").grid(row=row, column=0, sticky="w", padx=10)
+            ttk.Label(self.top, text="任务/截止日期:").grid(row=row, column=0, sticky="w", padx=10)
             row += 1
             date_frame = ttk.Frame(self.top)
             date_frame.grid(row=row, column=0, columnspan=2, padx=10, pady=(2, 5))
@@ -120,7 +141,6 @@ class TaskDialog:
             self.date_var = tk.StringVar(value=default_date or str(datetime.date.today()))
             ttk.Entry(date_frame, textvariable=self.date_var, width=15).pack(side=tk.LEFT, padx=(0, 5))
 
-            # 使用简单的日期输入（YYYY-MM-DD），旁边加一个 "📅" 按钮弹出日历
             ttk.Button(date_frame, text="📅", width=3,
                        command=self._pick_date).pack(side=tk.LEFT)
             row += 1
@@ -168,8 +188,6 @@ class TaskDialog:
 
     def _save(self):
         self.text = self.text_var.get().strip()
-        if hasattr(self, "dl_var"):
-            self.deadline = self.dl_var.get().strip()
         if not self.text:
             messagebox.showwarning("提示", "内容不能为空", parent=self.top)
             return
@@ -180,8 +198,10 @@ class TaskDialog:
                 try:
                     datetime.date.fromisoformat(self.task_date)
                 except ValueError:
-                    messagebox.showwarning("格式错误", "日期格式应 YYYY-MM-DD", parent=self.top)
+                    messagebox.showwarning("格式错误", "日期格式应为 YYYY-MM-DD", parent=self.top)
                     return
+            # 任务日期即为截止日期，合二为一
+            self.deadline = self.task_date
         self.result = "save"
         self.top.destroy()
 
